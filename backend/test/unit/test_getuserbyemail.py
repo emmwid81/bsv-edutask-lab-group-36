@@ -1,72 +1,49 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
-from src.util.dao import DAO
 from src.controllers.usercontroller import UserController
 
-# @pytest.fixture
-# def mock_dao():
-#     mocked_dao = MagicMock()
-#     return mocked_dao
+@pytest.fixture
+def mock_dao():
+    dao = MagicMock()
+    return dao
 
-# @pytest.mark.parametrize('email, expected', [(-1, 'invalid'), (0, 'underaged'), (1, 'underaged'), (17, 'underaged'), (18, 'valid'), (19, 'valid'), (119, 'valid'), (120, 'valid'), (121, 'invalid')])
-# def test_validateAge(sut, expected):
-#     validationresult = sut.validateAge(userid=None)
-#     assert validationresult == expected
-@pytest.mark.unit
-def test_user_controller_1():
-    email = 'test@example.com'
-    user = {'email' : email}
-    mocked_dao = MagicMock()
-    mocked_dao.find.return_value = [user]
-    user_controller = UserController(mocked_dao)
+@pytest.mark.parametrize('email, dao_return, expected', [
+    ('test@unique.com', [{'email' : 'test@unique.com'}], {'email' : 'test@unique.com'}),
+    ('test@duplicate.com', [{'email' : 'test@duplicate.com'}, {'email' : 'test@duplicate.com'}], {'email' : 'test@duplicate.com'}),
+    ('test@unknown.com', [], None)
+])
+@pytest.mark.lab1
+def test_get_user_valid_email_format(email, mock_dao, dao_return, expected):
+    """ Input has valid email format - unique email, duplicate email, no match. """
+    # Arrange
+    mock_dao.find.return_value = dao_return
+    user_controller = UserController(mock_dao)
+    # Act
     result = user_controller.get_user_by_email(email)
-    assert result == user
+    # Assert
+    assert result == expected
 
-@pytest.mark.unit
-def test_user_controller_2():
-    email = 'test@example.com'
-    user = {'email' : email}
-    user2 = {'email': email}
-    mocked_dao = MagicMock()
-    mocked_dao.find.return_value = [user, user2]
-    user_controller = UserController(mocked_dao)
-    result = user_controller.get_user_by_email(email)
-    assert result == user
-
-@pytest.mark.unit
-def test_user_controller_3():
-    with pytest.raises(ValueError):
-        email = 'invalidemail'
-        user = {'email' : email}
-        mocked_dao = MagicMock()
-        mocked_dao.find.return_value = [user]
-        user_controller = UserController(mocked_dao)
+@pytest.mark.parametrize('email', [
+    'invalidemail',
+    'a@b'
+])
+@pytest.mark.lab1
+def test_get_user_invalid_email_format(mock_dao, email):
+    """ Input has invalid email format - missing @, missing .com """
+    # Arrange
+    user_controller = UserController(mock_dao)
+    # Act
+    with pytest.raises(ValueError, match = 'Error: invalid email address'):
         user_controller.get_user_by_email(email)
 
-@pytest.mark.unit
-def test_user_controller_4():
-    with pytest.raises(ValueError):
-        email = 'a@b'
-        user = {'email' : email}
-        mocked_dao = MagicMock()
-        mocked_dao.find.return_value = [user]
-        user_controller = UserController(mocked_dao)
-        user_controller.get_user_by_email(email)
-
-@pytest.mark.unit
-def test_user_controller_5():
-    mocked_dao = MagicMock()
-    mocked_dao.find.return_value = []
-    user_controller = UserController(mocked_dao)
-    result = user_controller.get_user_by_email('unknown@email.com')
-    assert result == None
-
-@pytest.mark.unit
-def test_user_controller_6():
-    with pytest.raises(Exception):
-        email = 'test@example.com'
-        mocked_dao = MagicMock()
-        mocked_dao.find.side_effect(Exception)
-        user_controller = UserController(mocked_dao)
+@pytest.mark.lab1
+def test_get_user_dao_failure(mock_dao):
+    """ Database operation fail. """
+    # Arrange
+    email = 'test@example.com'
+    mock_dao.find.side_effect = Exception('Database failure')
+    user_controller = UserController(mock_dao)
+    # Act
+    with pytest.raises(Exception, match = 'Database failure'):
         user_controller.get_user_by_email(email)
