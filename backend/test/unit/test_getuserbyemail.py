@@ -10,7 +10,7 @@ def mock_dao():
 
 @pytest.mark.parametrize('email, dao_return, expected', [
     ('test@unique.com', [{'email' : 'test@unique.com'}], {'email' : 'test@unique.com'}),
-    ('test@duplicate.com', [{'email' : 'test@duplicate.com'}, {'email' : 'test@duplicate.com'}], {'email' : 'test@duplicate.com'}),
+    ('test@duplicate.com', [{'email' : 'test@duplicate.com', 'name': 'Safa'}, {'email' : 'test@duplicate.com', 'name': 'Emma'}], {'email' : 'test@duplicate.com', 'name': 'Safa'}),
     ('test@unknown.com', [], None)
 ])
 @pytest.mark.unit
